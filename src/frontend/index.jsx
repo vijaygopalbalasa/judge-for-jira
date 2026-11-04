@@ -20,8 +20,9 @@ function Receipt({ receipt }) {
     <Stack space="space.100">
       <Inline space="space.100" alignBlock="center">
         <Lozenge appearance={core.pass ? "success" : "removed"} isBold>{core.pass ? "PASS" : "FAIL"}</Lozenge>
-        <Text>{passed} of {core.results.length} checks passed · {what}</Text>
+        <Text>{passed} of {core.results.length} checks passed</Text>
       </Inline>
+      <Text>Delivery: {what}</Text>
       <List type="unordered">
         {core.results.map((r, i) => (
           <ListItem key={i}><Text>{r.pass ? "✓" : "✗"} {r.label}: {r.detail}</Text></ListItem>
