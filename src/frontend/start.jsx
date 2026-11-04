@@ -5,7 +5,6 @@ function GetStarted() {
   return (
     <Stack space="space.300">
       <Stack space="space.100">
-        <Heading size="large">Judge for Jira</Heading>
         <Text>Done means the checks passed, not that someone said so. Freeze a work item's acceptance checks before work starts. Judge checks every delivery, from a person or an AI agent, with a fixed program, posts a pass or fail receipt anyone can re-run, and can block Done until a delivery passes.</Text>
       </Stack>
 
