@@ -42,6 +42,22 @@ modules:
       actions:
         - get-judge-status
         - check-delivery
+      skills:
+        - judge-delivery-skill
+  rovo:skill:
+    - key: judge-delivery-skill
+      source:
+        dir: skills/judge-for-jira
+      dependencies:
+        tools:
+          - get-judge-status
+          - check-delivery
+  jira:adminPage:
+    - key: judge-get-started
+      resource: start
+      render: native
+      title: Judge for Jira
+      useAsGetStarted: true
   action:
     - key: get-judge-status
       name: Get Judge status
@@ -95,6 +111,8 @@ modules:
 resources:
   - key: main
     path: src/frontend/index.jsx
+  - key: start
+    path: src/frontend/start.jsx
   - key: agent-prompts
     path: prompts
 app:
