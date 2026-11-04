@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,6 +61,31 @@ test("the command-line verifier prints CONFIRMED and exits 0 for a good receipt,
   let code = 0;
   try {
     execFileSync(process.execPath, [bin, "--checks", join(dir, "checks.json"), "--receipt", join(dir, "receipt.json"), "--file", join(dir, "wrong.md")], { encoding: "utf8", stdio: "pipe" });
+  } catch (e) {
+    code = e.status;
+    assert.match(String(e.stdout), /^DIFFERENT/m);
+  }
+  assert.equal(code, 1);
+});
+
+test("a comment delivery re-runs from the comment's JSON alone: the real KAN-3 receipt is CONFIRMED", () => {
+  const ex = fileURLToPath(new URL("../examples/kan-3/", import.meta.url));
+  const bin = fileURLToPath(new URL("../bin/recheck.js", import.meta.url));
+  const hash = "27fd3721d96b196d78743a558343813107f9d75c6c146ad584730750599c5091";
+  const out = execFileSync(process.execPath, [bin, "--checks", join(ex, "checks.json"), "--receipt", join(ex, "receipt.json"), "--comment", join(ex, "comment.json"), "--expect", hash], { encoding: "utf8" });
+  assert.equal(out.trim(), `CONFIRMED receipt ${hash}`);
+});
+
+test("a changed comment is reported as DIFFERENT, not CONFIRMED", () => {
+  const ex = fileURLToPath(new URL("../examples/kan-3/", import.meta.url));
+  const bin = fileURLToPath(new URL("../bin/recheck.js", import.meta.url));
+  const dir = mkdtempSync(join(tmpdir(), "judge-comment-"));
+  const c = JSON.parse(readFileSync(join(ex, "comment.json"), "utf8"));
+  c.body.content[2].content[0].text += " Edited later.";
+  writeFileSync(join(dir, "comment.json"), JSON.stringify(c));
+  let code = 0;
+  try {
+    execFileSync(process.execPath, [bin, "--checks", join(ex, "checks.json"), "--receipt", join(ex, "receipt.json"), "--comment", join(dir, "comment.json")], { encoding: "utf8", stdio: "pipe" });
   } catch (e) {
     code = e.status;
     assert.match(String(e.stdout), /^DIFFERENT/m);

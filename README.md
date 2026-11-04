@@ -13,9 +13,10 @@ Built on Atlassian Forge for Codegeist 2026. Runs entirely on Atlassian's cloud:
 
 ```
 node bin/recheck.js --checks checks.json --receipt receipt.json --file <delivered file> --expect <receipt hash>
+node bin/recheck.js --checks checks.json --receipt receipt.json --comment comment.json --expect <receipt hash>
 ```
 
-`checks.json` is the JSON in Judge's freeze comment; `receipt.json` is the JSON in its receipt comment. It prints `CONFIRMED` with the same receipt hash, or `DIFFERENT` and what differs.
+`checks.json` is the JSON in Judge's freeze comment; `receipt.json` is the JSON in its receipt comment. Use `--file` for an attachment delivery, or `--comment` with the comment's JSON from `GET /rest/api/3/issue/<KEY>/comment/<ID>` (the ID is `delivery.id` in the receipt). It prints `CONFIRMED` with the same receipt hash, or `DIFFERENT` and what differs. [`examples/kan-3`](examples/kan-3) is a real receipt from the live app to try it on.
 
 5. **Agents.** The Judge agent in Rovo drafts checks and explains failures from the real receipt. Two read-only actions, `get-judge-status` and `check-delivery`, are also exposed through `rovo:mcp`, so outside MCP clients can test a draft before handing it in. [`skills/judge-for-jira/SKILL.md`](skills/judge-for-jira/SKILL.md) teaches any agent that workflow.
 
