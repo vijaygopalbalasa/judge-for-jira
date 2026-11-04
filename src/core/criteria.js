@@ -28,10 +28,13 @@ export function checksHash(checks) {
   return createHash("sha256").update(canonicalize(checks), "utf8").digest("hex");
 }
 
-/** The record stored when checks are frozen. Refuses checks the checker would refuse. */
-export function freezeRecord(checks, { accountId, at }) {
+/**
+ * The record stored when checks are frozen. Refuses checks the checker would refuse. It holds no personal data:
+ * who froze the checks is shown in Jira's own comment, so the app's storage never keeps an account ID.
+ */
+export function freezeRecord(checks, { at }) {
   const v = validateCriteria(checks);
   if (!v.valid) throw new FreezeError(v.reason);
   const copy = JSON.parse(canonicalize(checks));
-  return { version: 1, checks: copy, checksHash: checksHash(copy), frozenBy: accountId, frozenAt: at };
+  return { version: 1, checks: copy, checksHash: checksHash(copy), frozenAt: at };
 }

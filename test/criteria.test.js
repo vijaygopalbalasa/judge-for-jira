@@ -39,15 +39,15 @@ test("a member named __proto__ is hashed as data, never dropped", () => {
   assert.notEqual(checksHash(withProto), checksHash({ version: 1, checks: [] }));
 });
 
-test("freezing records the checks, their hash, who froze them and when", () => {
+test("freezing records the checks, their hash and when, and no personal data (who froze them is in Jira's comment)", () => {
   const rec = freezeRecord(CHECKS, { accountId: "557058:abc", at: "2026-11-04T12:00:00.000Z" });
   assert.deepEqual(rec, {
     version: 1,
     checks: CHECKS,
     checksHash: checksHash(CHECKS),
-    frozenBy: "557058:abc",
     frozenAt: "2026-11-04T12:00:00.000Z",
   });
+  assert.equal(JSON.stringify(rec).includes("557058"), false);
 });
 
 test("freezing refuses checks the checker would refuse, and says why", () => {

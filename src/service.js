@@ -21,10 +21,11 @@ const code = (t) => text(t, [{ type: "code" }]);
 const para = (...content) => ({ type: "paragraph", content });
 const doc = (...content) => ({ type: "doc", version: 1, content: content.filter(Boolean) });
 
-function freezeComment(record, previous) {
+function freezeComment(record, previous, accountId) {
   const checks = record.checks.checks;
   return doc(
     para(text("🔒 Acceptance checks frozen", [{ type: "strong" }]), text(` · ${checks.length} check${checks.length === 1 ? "" : "s"}`)),
+    accountId ? para(text("Frozen by "), { type: "mention", attrs: { id: String(accountId) } }) : null,
     { type: "bulletList", content: checks.map((c) => ({ type: "listItem", content: [para(text(describeCheck(c)))] })) },
     para(text("Every delivery is checked against exactly these checks. A delivery is an attachment, or a comment that starts with \"Delivery\".")),
     previous ? para(text("These replace the checks frozen earlier ("), code(previous.checksHash), text(").")) : null,
@@ -72,7 +73,7 @@ export function createService({ store, jira, now }) {
       const previous = await store.get(checksKey(issueId));
       if (previous && previous.checksHash === record.checksHash) return { ok: true, record: previous, unchanged: true };
       await store.set(checksKey(issueId), record);
-      await jira.postComment(issueKey, freezeComment(record, previous));
+      await jira.postComment(issueKey, freezeComment(record, previous, accountId));
       return { ok: true, record };
     },
 

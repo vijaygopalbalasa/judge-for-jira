@@ -56,6 +56,8 @@ test("freezing stores the record, announces the hash in a comment, and refuses b
   assert.ok(f.posted[0].text.includes(ok.record.checksHash));
   assert.ok(f.posted[0].text.includes(describeCheck(CHECKS.checks[0])));
   assert.ok(f.posted[0].text.includes(canonicalize(ok.record.checks)), "the exact checks are published so anyone can re-run them");
+  assert.ok(f.posted[0].text.includes("Frozen by @557058:lead"), "the comment names who froze the checks");
+  assert.equal(JSON.stringify(f.kv.get("checks:10007")).includes("557058"), false, "the stored record holds no account ID");
 });
 
 test("the simple form freezes the same checks the JSON would, and refuses a bad form with its reason", async () => {
