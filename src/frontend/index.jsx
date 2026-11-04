@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import ForgeReconciler, { Button, Code, Heading, Inline, List, ListItem, Lozenge, SectionMessage, Spinner, Stack, Text, TextArea } from "@forge/react";
+import ForgeReconciler, { Button, Checkbox, Code, Heading, Inline, Label, List, ListItem, Lozenge, SectionMessage, Spinner, Stack, Text, TextArea, Textfield } from "@forge/react";
 import { invoke } from "@forge/bridge";
 
 const EXAMPLE = JSON.stringify({
@@ -35,20 +35,27 @@ function Receipt({ receipt }) {
 function App() {
   const [state, setState] = useState(null);
   const [draft, setDraft] = useState(EXAMPLE);
+  const [required, setRequired] = useState("## Summary\n## How it was tested");
+  const [minWords, setMinWords] = useState("");
+  const [maxWords, setMaxWords] = useState("400");
+  const [wholeWords, setWholeWords] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
   const load = async () => setState(await invoke("status"));
   useEffect(() => { load(); }, []);
 
-  const freeze = async () => {
+  const run = async (name, payload) => {
     setBusy(true);
     setError(null);
-    const r = await invoke("freeze", { checksText: draft });
+    const r = await invoke(name, payload);
     setBusy(false);
     if (!r.ok) setError(r.error);
     await load();
   };
+  const freezeForm = () => run("freezeForm", { form: { requiredText: required, minWords, maxWords, wholeWords } });
+  const freezeJson = () => run("freeze", { checksText: draft });
 
   if (!state) return <Spinner label="Loading Judge" />;
 
@@ -70,10 +77,31 @@ function App() {
           <SectionMessage appearance="information" title="No acceptance checks yet">
             <Text>Write the checks the work must pass, then freeze them before work starts. Every delivery (an attachment, or a comment that starts with "Delivery") is checked against exactly these checks.</Text>
           </SectionMessage>
-          <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} resize="vertical" />
-          <Inline space="space.100">
-            <Button appearance="primary" onClick={freeze} isDisabled={busy}>Freeze checks</Button>
+          <Label labelFor="judge-required">Required text, one item per line</Label>
+          <TextArea id="judge-required" value={required} onChange={(e) => setRequired(e.target.value)} resize="vertical" />
+          <Checkbox label="Each item must stand on its own as whole words" isChecked={wholeWords} onChange={(e) => setWholeWords(e.target.checked)} />
+          <Inline space="space.200">
+            <Stack space="space.050">
+              <Label labelFor="judge-min">Minimum words</Label>
+              <Textfield id="judge-min" value={minWords} onChange={(e) => setMinWords(e.target.value)} />
+            </Stack>
+            <Stack space="space.050">
+              <Label labelFor="judge-max">Maximum words</Label>
+              <Textfield id="judge-max" value={maxWords} onChange={(e) => setMaxWords(e.target.value)} />
+            </Stack>
           </Inline>
+          <Inline space="space.100">
+            <Button appearance="primary" onClick={freezeForm} isDisabled={busy}>Freeze checks</Button>
+            <Button appearance="subtle" onClick={() => setAdvanced(!advanced)}>{advanced ? "Hide JSON" : "Advanced: write checks as JSON"}</Button>
+          </Inline>
+          {advanced && (
+            <Stack space="space.100">
+              <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} resize="vertical" />
+              <Inline space="space.100">
+                <Button onClick={freezeJson} isDisabled={busy}>Freeze JSON checks</Button>
+              </Inline>
+            </Stack>
+          )}
         </Stack>
       )}
       {error && <SectionMessage appearance="error"><Text>{error}</Text></SectionMessage>}

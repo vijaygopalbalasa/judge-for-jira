@@ -9,6 +9,7 @@ import { deliveryFromComment, addedAttachments } from "./core/delivery.js";
 import { freezeRecord, FreezeError } from "./core/criteria.js";
 import { evaluate, gateDecision, receiptComment } from "./core/receipt.js";
 import { describeCheck } from "./core/describe.js";
+import { checksFromForm, FormError } from "./core/form.js";
 
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const checksKey = (issueId) => `checks:${issueId}`;
@@ -70,6 +71,17 @@ export function createService({ store, jira, now }) {
       await store.set(checksKey(issueId), record);
       await jira.postComment(issueKey, freezeComment(record, previous));
       return { ok: true, record };
+    },
+
+    async freezeForm({ issueId, issueKey, form, accountId }) {
+      let checks;
+      try {
+        checks = checksFromForm(form);
+      } catch (e) {
+        if (e instanceof FormError) return { ok: false, error: e.message };
+        throw e;
+      }
+      return this.freeze({ issueId, issueKey, checksText: JSON.stringify(checks), accountId });
     },
 
     async onComment(event) {

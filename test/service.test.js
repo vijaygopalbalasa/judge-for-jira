@@ -55,6 +55,17 @@ test("freezing stores the record, announces the hash in a comment, and refuses b
   assert.ok(f.posted[0].text.includes(describeCheck(CHECKS.checks[0])));
 });
 
+test("the simple form freezes the same checks the JSON would, and refuses a bad form with its reason", async () => {
+  const f = fakes();
+  const r = await f.svc.freezeForm({ issueId: ISSUE.id, issueKey: ISSUE.key, form: { requiredText: "## Added\n## Fixed", maxWords: "50" }, accountId: "a" });
+  assert.equal(r.ok, true, r.error);
+  const viaJson = fakes();
+  const j = await viaJson.svc.freeze({ issueId: ISSUE.id, issueKey: ISSUE.key, checksText: JSON.stringify(CHECKS), accountId: "a" });
+  assert.equal(r.record.checksHash, j.record.checksHash, "same checks, same hash");
+  const bad = await fakes().svc.freezeForm({ issueId: ISSUE.id, issueKey: ISSUE.key, form: { maxWords: "lots" }, accountId: "a" });
+  assert.deepEqual(bad, { ok: false, error: "Maximum words must be a whole number of words." });
+});
+
 test("re-freezing different checks says what they replaced", async () => {
   const f = await frozenService();
   const old = f.kv.get("checks:10007").checksHash;

@@ -90,6 +90,18 @@ resolver.define("freeze", async ({ payload, context }) => {
   return service.freeze({ issueId: String(issue.id), issueKey: issue.key, checksText: String(payload?.checksText ?? ""), accountId: context.accountId });
 });
 
+resolver.define("freezeForm", async ({ payload, context }) => {
+  const issue = panelIssue(context);
+  if (!(await userCanEdit(String(issue.id)))) return { ok: false, error: "You need permission to edit this work item to freeze its checks." };
+  const form = payload?.form ?? {};
+  return service.freezeForm({
+    issueId: String(issue.id),
+    issueKey: issue.key,
+    form: { requiredText: String(form.requiredText ?? ""), wholeWords: form.wholeWords === true, minWords: String(form.minWords ?? ""), maxWords: String(form.maxWords ?? "") },
+    accountId: context.accountId,
+  });
+});
+
 export const resolverHandler = resolver.getDefinitions();
 
 /* ---- Rovo actions, also served as MCP tools ---- */
