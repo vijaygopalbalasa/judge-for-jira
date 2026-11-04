@@ -61,7 +61,9 @@ function App() {
   const recheckReceipt = async () => {
     setBusy(true);
     setRecheckResult(null);
-    setRecheckResult(await invoke("recheck"));
+    const r = await invoke("recheck");
+    await load();
+    setRecheckResult(r);
     setBusy(false);
   };
 
@@ -135,7 +137,7 @@ function App() {
       ))}
       <Inline space="space.100">
         {state.receipt && <Button onClick={recheckReceipt} isDisabled={busy}>Re-check receipt</Button>}
-        <Button onClick={load}>Refresh</Button>
+        <Button onClick={() => { setRecheckResult(null); load(); }}>Refresh</Button>
       </Inline>
     </Stack>
   );
