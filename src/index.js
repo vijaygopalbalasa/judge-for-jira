@@ -39,16 +39,28 @@ const service = createService({ store, jira, now: () => new Date().toISOString()
 
 /* ---- Jira events and the Done gate ---- */
 
+// One short log line per event: its shape and the outcome, never comment text or file contents.
+const log = (fields) => console.log(JSON.stringify(fields));
+
 export async function onComment(event) {
-  return service.onComment(event);
+  log({ at: "comment", keys: Object.keys(event ?? {}), issue: event?.issue?.key, comment: Object.keys(event?.comment ?? {}), body: typeof event?.comment?.body });
+  const r = await service.onComment(event);
+  log({ at: "comment:done", skipped: r?.skipped, pass: r?.receipt?.core?.pass });
+  return r;
 }
 
 export async function onIssueUpdated(event) {
-  return service.onIssueUpdated(event);
+  const items = Array.isArray(event?.changelog?.items) ? event.changelog.items : [];
+  log({ at: "update", issue: event?.issue?.key, changes: items.map((i) => i?.fieldId ?? i?.field) });
+  const r = await service.onIssueUpdated(event);
+  log({ at: "update:done", skipped: r?.skipped, pass: r?.receipt?.core?.pass });
+  return r;
 }
 
 export async function validateDone(args) {
-  return service.validate(args);
+  const r = await service.validate(args);
+  log({ at: "gate", issue: args?.issue?.key, allow: r.result });
+  return r;
 }
 
 /* ---- the issue panel ---- */
