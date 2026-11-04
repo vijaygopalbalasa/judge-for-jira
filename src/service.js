@@ -74,6 +74,9 @@ export function createService({ store, jira, now }) {
 
     async onComment(event) {
       if (event?.selfGenerated) return { skipped: "own event" };
+      // A comment limited to a role or group (or a service desk internal note) is never judged: the receipt is a
+      // public comment and the panel shows it to everyone who can see the work item, so it could leak the content.
+      if (event?.comment?.visibility || event?.comment?.jsdPublic === false) return { skipped: "restricted comment" };
       const body = commentText(event?.comment?.body);
       if (body === null) return { skipped: "unreadable comment" };
       const delivered = deliveryFromComment(body);

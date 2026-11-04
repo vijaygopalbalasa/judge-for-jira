@@ -78,6 +78,18 @@ test("the app's own comments are never judged", async () => {
   assert.equal(f.posted.length, 0);
 });
 
+test("a delivery in a comment only some people can see is not judged, so the public receipt cannot leak it", async () => {
+  const f = await frozenService();
+  const restricted = commentEvent(GOOD);
+  restricted.comment.visibility = { type: "role", value: "Administrators", identifier: "10002" };
+  assert.deepEqual(await f.svc.onComment(restricted), { skipped: "restricted comment" });
+  const internal = commentEvent(GOOD);
+  internal.comment.jsdPublic = false;
+  assert.deepEqual(await f.svc.onComment(internal), { skipped: "restricted comment" });
+  assert.equal(f.posted.length, 0);
+  assert.equal(f.kv.has("receipt:10007"), false);
+});
+
 test("a delivery on a work item with no frozen checks is left alone", async () => {
   const f = fakes();
   assert.deepEqual(await f.svc.onComment(commentEvent(GOOD)), { skipped: "no checks frozen" });
