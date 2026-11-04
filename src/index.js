@@ -79,7 +79,7 @@ export const resolverHandler = resolver.getDefinitions();
 
 // The work item as the calling user sees it: a user who cannot see the work item gets nothing back.
 async function issueForUser(issueKey) {
-  const key = String(issueKey ?? "").trim();
+  const key = String(issueKey ?? "").trim().toUpperCase();
   if (!/^[A-Z][A-Z0-9_]+-\d+$/.test(key)) return null;
   const res = await api.asUser().requestJira(route`/rest/api/3/issue/${key}?fields=summary`, { headers: { Accept: "application/json" } });
   if (!res.ok) return null;
