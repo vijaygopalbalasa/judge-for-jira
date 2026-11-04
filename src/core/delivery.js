@@ -16,5 +16,6 @@ export function addedAttachments(changelog) {
   const items = Array.isArray(changelog?.items) ? changelog.items : [];
   return items
     .filter((i) => (i?.fieldId === "attachment" || i?.field === "Attachment") && i.to !== null && i.to !== undefined)
-    .map((i) => ({ id: String(i.to), name: String(i.toString ?? "") }));
+    // Own property only: on an item without one, i.toString is Object.prototype.toString.
+    .map((i) => ({ id: String(i.to), name: Object.hasOwn(i, "toString") && typeof i.toString === "string" ? i.toString : "" }));
 }

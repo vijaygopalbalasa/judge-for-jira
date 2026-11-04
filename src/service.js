@@ -1,7 +1,7 @@
 // What the app does, with Jira and storage passed in, so every path is tested without a Jira site
 // (test/service.test.js). src/index.js passes the real Forge APIs.
 //   store: { get(key), set(key, value) }            Forge key-value storage, private to the app
-//   jira:  { postComment(issueKey, adf), attachmentSize(id), attachmentBytes(id), issueIdForKey(key) }
+//   jira:  { postComment(issueKey, adf), attachmentInfo(id) -> { size, filename }, attachmentBytes(id), issueIdForKey(key) }
 //   now:   () => ISO time
 
 import { adfToText, AdfError } from "./core/adf.js";
@@ -93,12 +93,15 @@ export function createService({ store, jira, now }) {
       const frozen = await store.get(checksKey(event.issue.id));
       if (!frozen) return { skipped: "no checks frozen" };
       const att = added[added.length - 1];
-      if ((await jira.attachmentSize(att.id)) > MAX_ATTACHMENT_BYTES) {
-        await jira.postComment(event.issue.key, tooLargeComment(att.name || att.id));
+      // The attachment's own record names the file; the changelog does not always carry the name.
+      const info = await jira.attachmentInfo(att.id);
+      const name = info?.filename || att.name || att.id;
+      if ((info?.size ?? 0) > MAX_ATTACHMENT_BYTES) {
+        await jira.postComment(event.issue.key, tooLargeComment(name));
         return { skipped: "attachment too large" };
       }
       const bytes = await jira.attachmentBytes(att.id);
-      return judge(event.issue, frozen, { source: "attachment", id: att.id, name: att.name, content: bytes });
+      return judge(event.issue, frozen, { source: "attachment", id: att.id, name, content: bytes });
     },
 
     async validate(args) {

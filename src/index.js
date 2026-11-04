@@ -1,10 +1,14 @@
 // Forge entry points. All behaviour lives in service.js (tested with fakes); this file only connects it to Forge:
 // key-value storage that only this app can read or write, and the Jira REST API.
 
-import api, { route } from "@forge/api";
+import { asApp, asUser, route } from "@forge/api";
 import { kvs } from "@forge/kvs";
-import Resolver from "@forge/resolver";
+import ResolverModule from "@forge/resolver";
 import { createService } from "./service.js";
+
+// @forge/resolver is CommonJS with a default export; as an ES module (package.json "type": "module") the
+// default import is the whole module object, so take its default member when there is one.
+const Resolver = ResolverModule.default ?? ResolverModule;
 
 const JSON_HEADERS = { Accept: "application/json", "Content-Type": "application/json" };
 
@@ -15,20 +19,21 @@ async function expectOk(res, what) {
 
 const jira = {
   async postComment(issueKey, adf) {
-    await expectOk(await api.asApp().requestJira(route`/rest/api/3/issue/${issueKey}/comment`, {
+    await expectOk(await asApp().requestJira(route`/rest/api/3/issue/${issueKey}/comment`, {
       method: "POST", headers: JSON_HEADERS, body: JSON.stringify({ body: adf }),
     }), "posting a comment");
   },
-  async attachmentSize(id) {
-    const res = await expectOk(await api.asApp().requestJira(route`/rest/api/3/attachment/${id}`, { headers: { Accept: "application/json" } }), "reading attachment details");
-    return Number((await res.json()).size ?? 0);
+  async attachmentInfo(id) {
+    const res = await expectOk(await asApp().requestJira(route`/rest/api/3/attachment/${id}`, { headers: { Accept: "application/json" } }), "reading attachment details");
+    const j = await res.json();
+    return { size: Number(j.size ?? 0), filename: typeof j.filename === "string" ? j.filename : "" };
   },
   async attachmentBytes(id) {
-    const res = await expectOk(await api.asApp().requestJira(route`/rest/api/3/attachment/content/${id}`, { redirect: "follow" }), "downloading the attachment");
+    const res = await expectOk(await asApp().requestJira(route`/rest/api/3/attachment/content/${id}`, { redirect: "follow" }), "downloading the attachment");
     return Buffer.from(await res.arrayBuffer());
   },
   async issueIdForKey(key) {
-    const res = await api.asApp().requestJira(route`/rest/api/3/issue/${key}?fields=summary`, { headers: { Accept: "application/json" } });
+    const res = await asApp().requestJira(route`/rest/api/3/issue/${key}?fields=summary`, { headers: { Accept: "application/json" } });
     if (!res.ok) return null;
     return (await res.json()).id ?? null;
   },
@@ -66,7 +71,7 @@ export async function validateDone(args) {
 /* ---- the issue panel ---- */
 
 async function userCanEdit(issueId) {
-  const res = await api.asUser().requestJira(route`/rest/api/3/mypermissions?issueId=${issueId}&permissions=EDIT_ISSUES`, { headers: { Accept: "application/json" } });
+  const res = await asUser().requestJira(route`/rest/api/3/mypermissions?issueId=${issueId}&permissions=EDIT_ISSUES`, { headers: { Accept: "application/json" } });
   if (!res.ok) return false;
   return (await res.json())?.permissions?.EDIT_ISSUES?.havePermission === true;
 }
@@ -93,7 +98,7 @@ export const resolverHandler = resolver.getDefinitions();
 async function issueForUser(issueKey) {
   const key = String(issueKey ?? "").trim().toUpperCase();
   if (!/^[A-Z][A-Z0-9_]+-\d+$/.test(key)) return null;
-  const res = await api.asUser().requestJira(route`/rest/api/3/issue/${key}?fields=summary`, { headers: { Accept: "application/json" } });
+  const res = await asUser().requestJira(route`/rest/api/3/issue/${key}?fields=summary`, { headers: { Accept: "application/json" } });
   if (!res.ok) return null;
   const j = await res.json();
   return { id: String(j.id), key: j.key };

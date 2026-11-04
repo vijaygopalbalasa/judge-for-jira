@@ -29,6 +29,12 @@ test("attachments added in an issue update are found in its changelog; removals 
   assert.deepEqual(addedAttachments(changelog), [{ id: "10001", name: "notes.md" }]);
 });
 
+test("an attachment change without a file name gets an empty name, never the text of Object's own toString", () => {
+  // Seen on a real site, Nov 4: the item had no own toString, and i.toString was Object.prototype.toString.
+  assert.deepEqual(addedAttachments({ items: [{ fieldId: "attachment", to: "10001" }] }), [{ id: "10001", name: "" }]);
+  assert.deepEqual(addedAttachments({ items: [{ fieldId: "attachment", to: "10002", toString: 7 }] }), [{ id: "10002", name: "" }]);
+});
+
 test("a changelog with no attachment changes, or none at all, adds nothing", () => {
   assert.deepEqual(addedAttachments({ items: [{ field: "summary", to: null }] }), []);
   assert.deepEqual(addedAttachments(undefined), []);

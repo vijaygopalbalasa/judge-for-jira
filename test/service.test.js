@@ -14,14 +14,14 @@ const ISSUE = { id: "10007", key: "KAN-7" };
 const GOOD = "Delivery:\n## Added\nCSV export\n## Fixed\nDate filter";
 const BAD = "Delivery:\n## Added\nCSV export";
 
-function fakes({ attachments = {} } = {}) {
+function fakes({ attachments = {}, names = {} } = {}) {
   const kv = new Map();
   const posted = [];
   const deps = {
     store: { get: async (k) => kv.get(k), set: async (k, v) => void kv.set(k, structuredClone(v)), delete: async (k) => void kv.delete(k) },
     jira: {
       postComment: async (key, adf) => void posted.push({ key, text: adfToText(adf) }),
-      attachmentSize: async (id) => attachments[id]?.length ?? 0,
+      attachmentInfo: async (id) => ({ size: attachments[id]?.length ?? 0, filename: names[id] ?? "" }),
       attachmentBytes: async (id) => attachments[id],
       issueIdForKey: async (key) => (key === ISSUE.key ? ISSUE.id : null),
     },
@@ -129,6 +129,15 @@ test("an attachment added after the checks were frozen is judged from its bytes"
   assert.equal(r.receipt.core.pass, true);
   assert.deepEqual({ source: r.receipt.core.delivery.source, id: r.receipt.core.delivery.id, name: r.receipt.core.delivery.name }, { source: "attachment", id: "20001", name: "notes.md" });
   assert.match(f.posted[0].text, /PASS/);
+});
+
+test("the file name comes from the attachment itself when the changelog does not carry one", async () => {
+  const notes = Buffer.from("## Added\nCSV export\n## Fixed\nDate filter");
+  const f = await frozenService({ attachments: { "20002": notes }, names: { "20002": "postmortem.md" } });
+  const event = { selfGenerated: false, issue: ISSUE, changelog: { items: [{ fieldId: "attachment", to: "20002" }] } };
+  const r = await f.svc.onIssueUpdated(event);
+  assert.equal(r.receipt.core.delivery.name, "postmortem.md");
+  assert.match(f.posted[0].text, /attachment postmortem\.md/);
 });
 
 test("an issue update without a new attachment is ignored, and an oversized attachment is reported, not judged", async () => {
