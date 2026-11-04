@@ -15,7 +15,8 @@ modules:
   jira:workflowValidator:
     - key: judge-done-gate
       name: Judge acceptance checks passed
-      description: Blocks the transition until the latest delivery passes the acceptance checks frozen on the work item.
+      description: Blocks the transition until the latest delivery passes the
+        acceptance checks frozen on the work item.
       function: validate-done
       projectTypes:
         - company-managed
@@ -31,7 +32,8 @@ modules:
   rovo:agent:
     - key: judge-agent
       name: Judge
-      description: Drafts acceptance checks for a work item and explains Judge's pass or fail receipts in plain words.
+      description: Drafts acceptance checks for a work item and explains Judge's pass
+        or fail receipts in plain words.
       prompt: resource:agent-prompts;judge-agent.txt
       conversationStarters:
         - Draft acceptance checks for this work item
@@ -45,7 +47,8 @@ modules:
       name: Get Judge status
       function: action-status
       actionVerb: GET
-      description: Returns a work item's frozen acceptance checks, its latest Judge receipt, and whether it may move to Done.
+      description: Returns a work item's frozen acceptance checks, its latest Judge
+        receipt, and whether it may move to Done.
       inputs:
         issueKey:
           title: Work item key
@@ -56,7 +59,9 @@ modules:
       name: Check a delivery
       function: action-check
       actionVerb: GET
-      description: Runs a work item's frozen acceptance checks on the given text and returns pass or fail per check. Posts nothing, stores nothing, and cannot change the checks.
+      description: Runs a work item's frozen acceptance checks on the given text and
+        returns pass or fail per check. Posts nothing, stores nothing, and
+        cannot change the checks.
       inputs:
         issueKey:
           title: Work item key
@@ -95,6 +100,7 @@ resources:
 app:
   runtime:
     name: nodejs24.x
+  id: ari:cloud:ecosystem::app/d77a4411-b23f-476d-96ef-967ea95fe99c
 permissions:
   scopes:
     - read:jira-work
