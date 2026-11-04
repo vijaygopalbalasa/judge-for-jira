@@ -1,0 +1,19 @@
+{
+  "name": "judge-for-jira",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Checks work delivered on a Jira work item against acceptance checks frozen before the work started.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@forge/api": "8.4.0",
+    "@forge/bridge": "7.2.1",
+    "@forge/kvs": "2.1.1",
+    "@forge/react": "12.4.0",
+    "@forge/resolver": "2.0.2",
+    "react": "18.3.1"
+  }
+}

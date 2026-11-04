@@ -1,0 +1,103 @@
+modules:
+  trigger:
+    - key: judge-comment-trigger
+      function: on-comment
+      events:
+        - avi:jira:commented:issue
+      filter:
+        ignoreSelf: true
+    - key: judge-update-trigger
+      function: on-issue-updated
+      events:
+        - avi:jira:updated:issue
+      filter:
+        ignoreSelf: true
+  jira:workflowValidator:
+    - key: judge-done-gate
+      name: Judge acceptance checks passed
+      description: Blocks the transition until the latest delivery passes the acceptance checks frozen on the work item.
+      function: validate-done
+      projectTypes:
+        - company-managed
+        - team-managed
+  jira:issuePanel:
+    - key: judge-panel
+      resource: main
+      resolver:
+        function: resolver
+      render: native
+      title: Judge
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+  rovo:agent:
+    - key: judge-agent
+      name: Judge
+      description: Drafts acceptance checks for a work item and explains Judge's pass or fail receipts in plain words.
+      prompt: resource:agent-prompts;judge-agent.txt
+      conversationStarters:
+        - Draft acceptance checks for this work item
+        - Why did the last delivery fail?
+        - Can this work item move to Done?
+      actions:
+        - get-judge-status
+        - check-delivery
+  action:
+    - key: get-judge-status
+      name: Get Judge status
+      function: action-status
+      actionVerb: GET
+      description: Returns a work item's frozen acceptance checks, its latest Judge receipt, and whether it may move to Done.
+      inputs:
+        issueKey:
+          title: Work item key
+          type: string
+          required: true
+          description: The Jira work item key, for example KAN-12.
+    - key: check-delivery
+      name: Check a delivery
+      function: action-check
+      actionVerb: GET
+      description: Runs a work item's frozen acceptance checks on the given text and returns pass or fail per check. Posts nothing, stores nothing, and cannot change the checks.
+      inputs:
+        issueKey:
+          title: Work item key
+          type: string
+          required: true
+          description: The Jira work item key, for example KAN-12.
+        text:
+          title: Delivery text
+          type: string
+          required: true
+          description: The full text of the work to test against the frozen checks.
+  rovo:mcp:
+    - key: judge-mcp
+      name: Judge
+      tools:
+        - get-judge-status
+        - check-delivery
+  function:
+    - key: resolver
+      handler: index.resolverHandler
+    - key: on-comment
+      handler: index.onComment
+    - key: on-issue-updated
+      handler: index.onIssueUpdated
+    - key: validate-done
+      handler: index.validateDone
+    - key: action-status
+      handler: index.actionStatus
+    - key: action-check
+      handler: index.actionCheck
+resources:
+  - key: main
+    path: src/frontend/index.jsx
+  - key: agent-prompts
+    path: prompts
+app:
+  runtime:
+    name: nodejs24.x
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - storage:app
+    - manage:jira-configuration
