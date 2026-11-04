@@ -42,6 +42,7 @@ function App() {
   const [advanced, setAdvanced] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [recheckResult, setRecheckResult] = useState(null);
 
   const load = async () => setState(await invoke("status"));
   useEffect(() => { load(); }, []);
@@ -56,6 +57,12 @@ function App() {
   };
   const freezeForm = () => run("freezeForm", { form: { requiredText: required, minWords, maxWords, wholeWords } });
   const freezeJson = () => run("freeze", { checksText: draft });
+  const recheckReceipt = async () => {
+    setBusy(true);
+    setRecheckResult(null);
+    setRecheckResult(await invoke("recheck"));
+    setBusy(false);
+  };
 
   if (!state) return <Spinner label="Loading Judge" />;
 
@@ -116,7 +123,17 @@ function App() {
           <Text>{state.gate.message}</Text>
         </SectionMessage>
       )}
+      {recheckResult && (recheckResult.ok ? (
+        <SectionMessage appearance={recheckResult.same ? "success" : "warning"} title={recheckResult.same ? "Receipt confirmed" : "Re-check found a difference"}>
+          {recheckResult.same
+            ? <Text>Re-reading the delivery from Jira and running the frozen checks again gives the same receipt: <Code>{short(recheckResult.receiptHash)}</Code></Text>
+            : <List type="unordered">{recheckResult.problems.map((p, i) => <ListItem key={i}><Text>{p}</Text></ListItem>)}</List>}
+        </SectionMessage>
+      ) : (
+        <SectionMessage appearance="error"><Text>{recheckResult.error}</Text></SectionMessage>
+      ))}
       <Inline space="space.100">
+        {state.receipt && <Button onClick={recheckReceipt} isDisabled={busy}>Re-check receipt</Button>}
         <Button onClick={load}>Refresh</Button>
       </Inline>
     </Stack>

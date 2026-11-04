@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { createService, MAX_ATTACHMENT_BYTES } from "../src/service.js";
 import { adfToText } from "../src/core/adf.js";
 import { describeCheck } from "../src/core/describe.js";
+import { canonicalize } from "../src/core/criteria.js";
 
 const CHECKS = { version: 1, checks: [
   { kind: "contains", params: { all: ["## Added", "## Fixed"] } },
@@ -14,7 +15,7 @@ const ISSUE = { id: "10007", key: "KAN-7" };
 const GOOD = "Delivery:\n## Added\nCSV export\n## Fixed\nDate filter";
 const BAD = "Delivery:\n## Added\nCSV export";
 
-function fakes({ attachments = {}, names = {} } = {}) {
+function fakes({ attachments = {}, names = {}, comments = {} } = {}) {
   const kv = new Map();
   const posted = [];
   const deps = {
@@ -23,6 +24,7 @@ function fakes({ attachments = {}, names = {} } = {}) {
       postComment: async (key, adf) => void posted.push({ key, text: adfToText(adf) }),
       attachmentInfo: async (id) => ({ size: attachments[id]?.length ?? 0, filename: names[id] ?? "" }),
       attachmentBytes: async (id) => attachments[id],
+      commentBody: async (key, id) => comments[id] ?? null,
       issueIdForKey: async (key) => (key === ISSUE.key ? ISSUE.id : null),
     },
     now: () => "2026-11-04T12:00:00.000Z",
@@ -53,6 +55,7 @@ test("freezing stores the record, announces the hash in a comment, and refuses b
   assert.match(f.posted[0].text, /Acceptance checks frozen/);
   assert.ok(f.posted[0].text.includes(ok.record.checksHash));
   assert.ok(f.posted[0].text.includes(describeCheck(CHECKS.checks[0])));
+  assert.ok(f.posted[0].text.includes(canonicalize(ok.record.checks)), "the exact checks are published so anyone can re-run them");
 });
 
 test("the simple form freezes the same checks the JSON would, and refuses a bad form with its reason", async () => {
@@ -200,4 +203,38 @@ test("status reports the frozen checks in plain words, the latest receipt and th
   assert.deepEqual(s.checks, CHECKS.checks.map(describeCheck));
   assert.equal(s.receipt.core.pass, false);
   assert.equal(s.gate.allow, false);
+});
+
+test("re-checking re-reads the delivery from Jira and confirms the stored receipt", async () => {
+  const comments = {};
+  const f = await frozenService({ comments });
+  await f.svc.onComment(commentEvent(GOOD));
+  comments["500"] = GOOD;
+  assert.deepEqual(await f.svc.recheckLatest({ issueId: ISSUE.id, issueKey: ISSUE.key }), { ok: true, same: true, problems: [], receiptHash: f.kv.get("receipt:10007").receiptHash });
+});
+
+test("re-checking catches a delivery comment edited after it was checked, and a deleted one", async () => {
+  const comments = {};
+  const f = await frozenService({ comments });
+  await f.svc.onComment(commentEvent(GOOD));
+  comments["500"] = GOOD.replace("Date filter", "Date filter and more");
+  const edited = await f.svc.recheckLatest({ issueId: ISSUE.id, issueKey: ISSUE.key });
+  assert.equal(edited.ok, true);
+  assert.equal(edited.same, false);
+  assert.ok(edited.problems.some((p) => /delivery bytes/.test(p)), edited.problems.join("; "));
+  delete comments["500"];
+  assert.deepEqual(await f.svc.recheckLatest({ issueId: ISSUE.id, issueKey: ISSUE.key }), { ok: false, error: "The delivery is no longer on the work item, so it cannot be re-checked." });
+});
+
+test("re-checking an attachment delivery reads the file again", async () => {
+  const notes = Buffer.from("## Added\nCSV export\n## Fixed\nDate filter");
+  const f = await frozenService({ attachments: { "20001": notes } });
+  await f.svc.onIssueUpdated({ selfGenerated: false, issue: ISSUE, changelog: { items: [{ fieldId: "attachment", to: "20001", toString: "notes.md" }] } });
+  const r = await f.svc.recheckLatest({ issueId: ISSUE.id, issueKey: ISSUE.key });
+  assert.equal(r.same, true, r.problems?.join("; "));
+});
+
+test("re-checking with nothing checked yet says so", async () => {
+  const f = await frozenService();
+  assert.deepEqual(await f.svc.recheckLatest({ issueId: ISSUE.id, issueKey: ISSUE.key }), { ok: false, error: "No delivery has been checked on this work item yet." });
 });

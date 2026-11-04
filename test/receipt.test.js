@@ -97,6 +97,7 @@ test("the receipt comment reads plainly and carries the full hashes", async () =
   assert.ok(text.includes(frozen.checksHash), "checks hash");
   assert.ok(text.includes(fail.core.delivery.sha256), "delivery hash");
   assert.ok(text.includes(fail.receiptHash), "receipt hash");
+  assert.ok(text.includes(canonicalize(fail.core)), "the receipt data is published so anyone can re-run it");
   const pass = await evaluate({ issueKey: "KAN-7", frozen, delivery: delivery(GOOD), at: AT });
   const passText = adfToText(receiptComment(pass));
   assert.match(passText, /PASS/);

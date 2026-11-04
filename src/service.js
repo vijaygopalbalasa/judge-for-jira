@@ -1,13 +1,14 @@
 // What the app does, with Jira and storage passed in, so every path is tested without a Jira site
 // (test/service.test.js). src/index.js passes the real Forge APIs.
 //   store: { get(key), set(key, value) }            Forge key-value storage, private to the app
-//   jira:  { postComment(issueKey, adf), attachmentInfo(id) -> { size, filename }, attachmentBytes(id), issueIdForKey(key) }
+//   jira:  { postComment(issueKey, adf), attachmentInfo(id) -> { size, filename }, attachmentBytes(id), commentBody(issueKey, id),
+//            issueIdForKey(key) }
 //   now:   () => ISO time
 
 import { adfToText, AdfError } from "./core/adf.js";
 import { deliveryFromComment, addedAttachments } from "./core/delivery.js";
-import { freezeRecord, FreezeError } from "./core/criteria.js";
-import { evaluate, gateDecision, receiptComment } from "./core/receipt.js";
+import { canonicalize, freezeRecord, FreezeError } from "./core/criteria.js";
+import { evaluate, gateDecision, receiptComment, recheck } from "./core/receipt.js";
 import { describeCheck } from "./core/describe.js";
 import { checksFromForm, FormError } from "./core/form.js";
 
@@ -28,6 +29,8 @@ function freezeComment(record, previous) {
     para(text("Every delivery is checked against exactly these checks. A delivery is an attachment, or a comment that starts with \"Delivery\".")),
     previous ? para(text("These replace the checks frozen earlier ("), code(previous.checksHash), text(").")) : null,
     para(text("Checks "), code(record.checksHash)),
+    para(text("The exact checks, to re-run any receipt:")),
+    { type: "codeBlock", attrs: { language: "json" }, content: [text(canonicalize(record.checks))] },
   );
 }
 
@@ -130,6 +133,31 @@ export function createService({ store, jira, now }) {
       const frozen = (await store.get(checksKey(issueId))) ?? null;
       const receipt = (await store.get(receiptKey(issueId))) ?? null;
       return { frozen, checks: frozen ? frozen.checks.checks.map(describeCheck) : [], receipt, gate: gateDecision({ frozen, receipt }) };
+    },
+
+    // Re-read the latest delivery from Jira and re-run its receipt: the same bytes and checks must give the same hash.
+    async recheckLatest({ issueId, issueKey }) {
+      const GONE = { ok: false, error: "The delivery is no longer on the work item, so it cannot be re-checked." };
+      const receipt = await store.get(receiptKey(issueId));
+      if (!receipt) return { ok: false, error: "No delivery has been checked on this work item yet." };
+      const frozen = await store.get(checksKey(issueId));
+      if (!frozen) return { ok: false, error: "No acceptance checks are frozen on this work item." };
+      const d = receipt.core.delivery;
+      let content;
+      if (d.source === "comment") {
+        const body = await jira.commentBody(issueKey, d.id);
+        const text = body === null || body === undefined ? null : commentText(body);
+        if (text === null) return GONE;
+        content = deliveryFromComment(text) ?? text;
+      } else if (d.source === "attachment") {
+        const bytes = await jira.attachmentBytes(d.id);
+        if (!bytes) return GONE;
+        content = bytes;
+      } else {
+        return { ok: false, error: "This receipt cannot be re-checked from Jira." };
+      }
+      const r = await recheck(receipt, { frozen, content });
+      return { ok: true, same: r.same, problems: r.problems, receiptHash: r.receiptHash };
     },
 
     async checkText({ issueId, issueKey, text: delivered }) {

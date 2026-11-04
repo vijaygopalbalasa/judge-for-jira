@@ -29,8 +29,16 @@ const jira = {
     return { size: Number(j.size ?? 0), filename: typeof j.filename === "string" ? j.filename : "" };
   },
   async attachmentBytes(id) {
-    const res = await expectOk(await asApp().requestJira(route`/rest/api/3/attachment/content/${id}`, { redirect: "follow" }), "downloading the attachment");
+    const res = await asApp().requestJira(route`/rest/api/3/attachment/content/${id}`, { redirect: "follow" });
+    if (res.status === 404) return null;
+    await expectOk(res, "downloading the attachment");
     return Buffer.from(await res.arrayBuffer());
+  },
+  async commentBody(issueKey, id) {
+    const res = await asApp().requestJira(route`/rest/api/3/issue/${issueKey}/comment/${id}`, { headers: { Accept: "application/json" } });
+    if (res.status === 404) return null;
+    await expectOk(res, "reading the delivery comment");
+    return (await res.json()).body ?? null;
   },
   async issueIdForKey(key) {
     const res = await asApp().requestJira(route`/rest/api/3/issue/${key}?fields=summary`, { headers: { Accept: "application/json" } });
@@ -88,6 +96,11 @@ resolver.define("freeze", async ({ payload, context }) => {
   const issue = panelIssue(context);
   if (!(await userCanEdit(String(issue.id)))) return { ok: false, error: "You need permission to edit this work item to freeze its checks." };
   return service.freeze({ issueId: String(issue.id), issueKey: issue.key, checksText: String(payload?.checksText ?? ""), accountId: context.accountId });
+});
+
+resolver.define("recheck", async ({ context }) => {
+  const issue = panelIssue(context);
+  return service.recheckLatest({ issueId: String(issue.id), issueKey: issue.key });
 });
 
 resolver.define("freezeForm", async ({ payload, context }) => {

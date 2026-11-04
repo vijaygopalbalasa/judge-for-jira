@@ -92,6 +92,8 @@ export function receiptComment(receipt) {
       { type: "bulletList", content: core.results.map((r) => ({ type: "listItem", content: [{ type: "paragraph", content: [text(`${r.pass ? "✓" : "✗"} ${r.label}: ${r.detail}`)] }] })) },
       { type: "paragraph", content: [text(core.pass ? "This work item can move to Done." : "Done stays blocked until a delivery passes every check.")] },
       { type: "paragraph", content: [text("Checks "), code(core.checksHash), text(` · Delivery (${what}) `), code(d.sha256), text(" · Receipt "), code(receiptHash)] },
+      { type: "paragraph", content: [text("Receipt data, to re-run this check anywhere:")] },
+      { type: "codeBlock", attrs: { language: "json" }, content: [text(canonicalize(core))] },
     ],
   };
 }
