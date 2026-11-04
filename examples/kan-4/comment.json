@@ -1,0 +1,71 @@
+{
+ "id": "10019",
+ "body": {
+  "type": "doc",
+  "version": 1,
+  "content": [
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "type": "text",
+      "text": "Delivery: change summary for the login rate limit fix"
+     }
+    ],
+    "attrs": {
+     "localId": "b12d3496a122"
+    }
+   },
+   {
+    "type": "heading",
+    "attrs": {
+     "level": 2,
+     "localId": "e72c3d6216bc"
+    },
+    "content": [
+     {
+      "type": "text",
+      "text": "Summary"
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "type": "text",
+      "text": "Login now allows five attempts a minute per account, then asks the person to wait, so password guessing slows right down."
+     }
+    ],
+    "attrs": {
+     "localId": "15e2863aa0c8"
+    }
+   },
+   {
+    "type": "heading",
+    "attrs": {
+     "level": 2,
+     "localId": "e1fe890687e5"
+    },
+    "content": [
+     {
+      "type": "text",
+      "text": "How it was tested"
+     }
+    ]
+   },
+   {
+    "type": "paragraph",
+    "content": [
+     {
+      "type": "text",
+      "text": "Ran the login tests and sent twenty bad passwords in staging; the sixth attempt had to wait a minute."
+     }
+    ],
+    "attrs": {
+     "localId": "db83f40b673a"
+    }
+   }
+  ]
+ }
+}

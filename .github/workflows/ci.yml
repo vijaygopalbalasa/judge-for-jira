@@ -16,6 +16,8 @@ jobs:
       - run: npm test
       - name: Offline re-check of the KAN-3 example
         run: node bin/recheck.js --checks examples/kan-3/checks.json --receipt examples/kan-3/receipt.json --comment examples/kan-3/comment.json --expect 27fd3721d96b196d78743a558343813107f9d75c6c146ad584730750599c5091
+      - name: Offline re-check of the KAN-4 example
+        run: node bin/recheck.js --checks examples/kan-4/checks.json --receipt examples/kan-4/receipt.json --comment examples/kan-4/comment.json --expect f5961c3ea56286802eefff50acfcb267c135e1b0eb92c4e60d04a96705f603fc
       - name: Install gitleaks
         run: |
           VER=8.30.1

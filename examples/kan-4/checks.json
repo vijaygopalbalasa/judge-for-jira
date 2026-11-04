@@ -1,0 +1,1 @@
+{"checks":[{"kind":"contains","params":{"all":["## Summary","## How it was tested"]}},{"kind":"length","params":{"max":400,"unit":"words"}}],"version":1}
