@@ -2,6 +2,8 @@
 
 Done means the checks passed. Freeze a Jira work item's acceptance checks before work starts. Judge checks every delivery, from a person or an AI agent, with a fixed program (no AI decides the result), posts a pass or fail receipt anyone can re-run, and can block Done until a delivery passes.
 
+Demo video (2 minutes, recorded live on a real Jira site): https://youtu.be/vwTMWweO4bE
+
 Built on Atlassian Forge for Codegeist 2026. Runs entirely on Atlassian's cloud: no outside servers, no egress, no outside AI service, no personal data stored.
 
 ## How it works
